@@ -55,18 +55,18 @@ func newShard[K comparable, V any]() *shard[K, V] {
 type ShardedMap[K comparable, V any] struct {
 	shardsLimit int
 	hasher      func(K) int
-	shardsMap   map[int]*shard[K, V]
+	shardsMap   []*shard[K, V]
 }
 
 func NewShardedMap[K comparable, V any](shardsLimit int, hasher func(K) int) *ShardedMap[K, V] {
 	m := &ShardedMap[K, V]{
 		shardsLimit: shardsLimit,
 		hasher:      hasher,
-		shardsMap:   make(map[int]*shard[K, V]),
+		shardsMap:   make([]*shard[K, V], shardsLimit),
 	}
 
 	for i := 0; i < shardsLimit; i++ {
-		m.createShardIfNotExist(i)
+		m.shardsMap[i] = newShard[K, V]()
 	}
 
 	return m
@@ -88,13 +88,6 @@ func (m *ShardedMap[K, V]) getShardForKey(k K) *shard[K, V] {
 	hash := m.getHashForKey(k)
 	s := m.shardsMap[hash]
 	return s
-}
-
-func (m *ShardedMap[K, V]) createShardIfNotExist(hash int) {
-	_, ok := m.shardsMap[hash]
-	if !ok {
-		m.shardsMap[hash] = newShard[K, V]()
-	}
 }
 
 func (m *ShardedMap[K, V]) getHashForKey(k K) int {
