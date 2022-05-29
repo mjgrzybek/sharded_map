@@ -311,9 +311,9 @@ func Test_shard_String(t *testing.T) {
 		{
 			name: "a few elements",
 			fields: fields{
-				data: map[Key]Value{1: 11, 2: 22},
+				data: map[Key]Value{1: 11},
 			},
-			want: "[1:11, 2:22, ]",
+			want: "[1:11, ]",
 		},
 		{
 			name: "a lot of elements",
