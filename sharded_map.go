@@ -5,8 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"golang.org/x/exp/maps"
 )
 
 type Map[K comparable, V any] interface {
@@ -26,9 +24,8 @@ func (s shard[K, V]) String() string {
 	}
 
 	sb := strings.Builder{}
-	vals := maps.Values(s.data)
-	for _, v := range vals {
-		sb.WriteString(fmt.Sprintf("%v, ", v))
+	for k, v := range s.data {
+		sb.WriteString(fmt.Sprintf("%v:%v, ", k, v))
 	}
 	return "[" + sb.String() + "]"
 }
@@ -53,20 +50,24 @@ func newShard[K comparable, V any]() *shard[K, V] {
 }
 
 type ShardedMap[K comparable, V any] struct {
-	shardsLimit int
-	hasher      func(K) int
-	shardsMap   []*shard[K, V]
+	shardsNum int
+	hasher    func(K) int
+	shards    []*shard[K, V]
 }
 
-func NewShardedMap[K comparable, V any](shardsLimit int, hasher func(K) int) *ShardedMap[K, V] {
-	m := &ShardedMap[K, V]{
-		shardsLimit: shardsLimit,
-		hasher:      hasher,
-		shardsMap:   make([]*shard[K, V], shardsLimit),
+func NewShardedMap[K comparable, V any](shardsNum int, hasher func(K) int) *ShardedMap[K, V] {
+	if shardsNum < 1 {
+		return nil
 	}
 
-	for i := 0; i < shardsLimit; i++ {
-		m.shardsMap[i] = newShard[K, V]()
+	m := &ShardedMap[K, V]{
+		shardsNum: shardsNum,
+		hasher:    hasher,
+		shards:    make([]*shard[K, V], shardsNum),
+	}
+
+	for i := 0; i < shardsNum; i++ {
+		m.shards[i] = newShard[K, V]()
 	}
 
 	return m
@@ -79,20 +80,19 @@ func (m *ShardedMap[K, V]) Set(k K, v V) {
 
 func (m *ShardedMap[K, V]) Get(k K) (V, bool) {
 	shard := m.getShardForKey(k)
-
 	v, ok := shard.Get(k)
 	return v, ok
 }
 
 func (m *ShardedMap[K, V]) getShardForKey(k K) *shard[K, V] {
 	hash := m.getHashForKey(k)
-	s := m.shardsMap[hash]
+	s := m.shards[hash]
 	return s
 }
 
 func (m *ShardedMap[K, V]) getHashForKey(k K) int {
 	hash := m.hasher(k)
-	return hash % m.shardsLimit
+	return hash % m.shardsNum
 }
 
 var _ Map[int, int] = (*ShardedMap[int, int])(nil)

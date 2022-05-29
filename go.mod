@@ -1,4 +1,4 @@
-module sharded_map
+module github.com/mjgrzybek/sharded_map
 
 go 1.18
 
